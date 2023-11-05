@@ -48,7 +48,7 @@ class Template(BaseModel):
     total_fee_column: str
 
 
-class Data(BaseModel):
+class Configuration(BaseModel):
     trainer: Trainer
     class_: Class = Field(alias = "class")
     template: Template
@@ -77,21 +77,21 @@ def format_number(value: float) -> str:
     return str(value).replace(".", ",")
 
 
-def create_records(data: Data, year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
+def create_records(configuration: Configuration, year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
     for day, count in zip(days(year, month, weekday), participant_count, strict=True):
         if count > 0:
-            hours = data.class_.time.hours()
-            fee = hours * data.trainer.hourly_fee
+            hours = configuration.class_.time.hours()
+            fee = hours * configuration.trainer.hourly_fee
 
             yield Record(day=day, hours=hours, fee=fee, participant_count=count)
 
 
-def abrechnung(data_file: Path, year: int, month: int, participant_count: list[int]):
-    with open(data_file, "rb") as f:
+def abrechnung(configuration_file: Path, year: int, month: int, participant_count: list[int]):
+    with open(configuration_file, "rb") as f:
         doc = tomllib.load(f)
-        data = Data.model_validate(doc)
+        configuration = Configuration.model_validate(doc)
 
-    input_file = data_file.parent / data.template.file
+    input_file = configuration_file.parent / configuration.template.file
 
     print(f"Reading {input_file}")
     reader = pdf.PdfReader(open(input_file, "rb"), strict=False)  # TODO strict?
@@ -100,36 +100,36 @@ def abrechnung(data_file: Path, year: int, month: int, participant_count: list[i
     writer.add_page(reader.pages[0])
 
     writer.update_page_form_field_values(writer.pages[0], {
-        "Monat": data.trainer.name,
-        "1": data.trainer.address[0],
-        "2": data.trainer.address[1],
-        "3": data.trainer.iban,
+        "Monat": configuration.trainer.name,
+        "1": configuration.trainer.address[0],
+        "2": configuration.trainer.address[1],
+        "3": configuration.trainer.iban,
     })
 
     writer.update_page_form_field_values(writer.pages[0], {
-        "sportart": data.class_.name,  # Sportart
+        "sportart": configuration.class_.name,  # Sportart
         "undefined": f"{month}/{year}",  # Monat
     })
 
-    records = list(create_records(data, year, month, WEEKDAYS[data.class_.weekday.lower()], participant_count))
+    records = list(create_records(configuration, year, month, WEEKDAYS[configuration.class_.weekday.lower()], participant_count))
 
     for i, record in enumerate(records):
         writer.update_page_form_field_values(writer.pages[0], {
             f"DatumRow{i+1}": f"{record.day}.{month}.{year}",
-            f"ArbeitszeitRow{i+1}": f"{data.class_.time.start} - {data.class_.time.end}",
+            f"ArbeitszeitRow{i+1}": f"{configuration.class_.time.start} - {configuration.class_.time.end}",
             f"StdRow{i+1}": format_number(record.hours),
-            f"{data.template.fee_column_prefix}{i + 1}": format_number(record.fee),
+            f"{configuration.template.fee_column_prefix}{i + 1}": format_number(record.fee),
             f"Teil nehmerRow{i + 1}": record.participant_count,
         })
 
     writer.update_page_form_field_values(writer.pages[0], {
         "summe": format_number(sum(r.hours for r in records)),
-        data.template.total_fee_column: format_number(sum(r.fee for r in records)),
+        configuration.template.total_fee_column: format_number(sum(r.fee for r in records)),
         "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
     })
 
-    output_file_name = f"Trainerabrechnung {data.trainer.name} {data.class_.name} {year}-{month:02d}.pdf"
-    output_file = data_file.with_name(output_file_name)
+    output_file_name = f"Trainerabrechnung {configuration.trainer.name} {configuration.class_.name} {year}-{month:02d}.pdf"
+    output_file = configuration_file.with_name(output_file_name)
     print(f"Writing {output_file}")
     with open(output_file, "wb") as f:
         writer.write(f)
