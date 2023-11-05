@@ -56,6 +56,8 @@ class Data(BaseModel):
 
 class Record(BaseModel):
     day: int
+    hours: float
+    fee: float
     participant_count: int
 
 
@@ -75,10 +77,13 @@ def format_number(value: float) -> str:
     return str(value).replace(".", ",")
 
 
-def records(year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
+def create_records(data: Data, year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
     for day, count in zip(days(year, month, weekday), participant_count, strict=True):
         if count > 0:
-            yield Record(day=day, participant_count=count)
+            hours = data.class_.time.hours()
+            fee = hours * data.trainer.hourly_fee
+
+            yield Record(day=day, hours=hours, fee=fee, participant_count=count)
 
 
 def abrechnung(data_file: Path, year: int, month: int, participant_count: list[int]):
@@ -106,22 +111,20 @@ def abrechnung(data_file: Path, year: int, month: int, participant_count: list[i
         "undefined": f"{month}/{year}",  # Monat
     })
 
-    recs = list(records(year, month, WEEKDAYS[data.class_.weekday.lower()], participant_count))
+    records = list(create_records(data, year, month, WEEKDAYS[data.class_.weekday.lower()], participant_count))
 
-    for i, record in enumerate(recs):
-        fee = data.trainer.hourly_fee * data.class_.time.hours()
-
+    for i, record in enumerate(records):
         writer.update_page_form_field_values(writer.pages[0], {
             f"DatumRow{i+1}": f"{record.day}.{month}.{year}",
             f"ArbeitszeitRow{i+1}": f"{data.class_.time.start} - {data.class_.time.end}",
-            f"StdRow{i+1}": format_number(data.class_.time.hours()),
-            f"{data.template.fee_column_prefix}{i + 1}": format_number(fee),
+            f"StdRow{i+1}": format_number(record.hours),
+            f"{data.template.fee_column_prefix}{i + 1}": format_number(record.fee),
             f"Teil nehmerRow{i + 1}": record.participant_count,
         })
 
     writer.update_page_form_field_values(writer.pages[0], {
-        "summe": format_number(len(recs) * data.class_.time.hours()),
-        data.template.total_fee_column: format_number(len(recs) * data.class_.time.hours() * data.trainer.hourly_fee),
+        "summe": format_number(sum(r.hours for r in records)),
+        data.template.total_fee_column: format_number(sum(r.fee for r in records)),
         "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
     })
 
