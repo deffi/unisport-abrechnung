@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 import calendar
 import tomllib
 from pathlib import Path
@@ -53,6 +54,11 @@ class Data(BaseModel):
     template: Template
 
 
+class Record(BaseModel):
+    day: int
+    participant_count: int
+
+
 def days(year: int, month: int, weekday: int) -> list[int]:
     cal = calendar.Calendar()
     return [dom for dom, dow in cal.itermonthdays2(year, month) if dom != 0 and dow == weekday]
@@ -67,6 +73,12 @@ def parse_month(month: str) -> tuple[int, int]:
 
 def format_number(value: float) -> str:
     return str(value).replace(".", ",")
+
+
+def records(year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
+    for day, count in zip(days(year, month, weekday), participant_count, strict=True):
+        if count > 0:
+            yield Record(day=day, participant_count=count)
 
 
 def abrechnung(data_file: Path, year: int, month: int, participant_count: list[int]):
@@ -94,27 +106,22 @@ def abrechnung(data_file: Path, year: int, month: int, participant_count: list[i
         "undefined": f"{month}/{year}",  # Monat
     })
 
-    total_hours = 0
-    total_fee = 0
+    recs = list(records(year, month, WEEKDAYS[data.class_.weekday.lower()], participant_count))
 
-    ds = days(year, month, WEEKDAYS[data.class_.weekday.lower()])
-    for i, (day, count) in enumerate((day, count) for day, count in zip(ds, participant_count) if count > 0):
+    for i, record in enumerate(recs):
         fee = data.trainer.hourly_fee * data.class_.time.hours()
 
         writer.update_page_form_field_values(writer.pages[0], {
-            f"DatumRow{i+1}": f"{day}.{month}.{year}",
+            f"DatumRow{i+1}": f"{record.day}.{month}.{year}",
             f"ArbeitszeitRow{i+1}": f"{data.class_.time.start} - {data.class_.time.end}",
             f"StdRow{i+1}": format_number(data.class_.time.hours()),
             f"{data.template.fee_column_prefix}{i + 1}": format_number(fee),
-            f"Teil nehmerRow{i + 1}": count,
+            f"Teil nehmerRow{i + 1}": record.participant_count,
         })
 
-        total_hours += data.class_.time.hours()
-        total_fee += fee
-
     writer.update_page_form_field_values(writer.pages[0], {
-        "summe": format_number(total_hours),
-        data.template.total_fee_column: format_number(total_fee),
+        "summe": format_number(len(recs) * data.class_.time.hours()),
+        data.template.total_fee_column: format_number(len(recs) * data.class_.time.hours() * data.trainer.hourly_fee),
         "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
     })
 
