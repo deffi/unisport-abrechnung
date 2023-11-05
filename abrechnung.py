@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from datetime import datetime
 
+import pypdf
 from pydantic import BaseModel, conlist, Field
 import pypdf as pdf
 import typer
@@ -61,9 +62,28 @@ class Record(BaseModel):
     participant_count: int
 
 
-def days(year: int, month: int, weekday: int) -> list[int]:
+class Bill(BaseModel):
+    configuration: Configuration
+    year: int
+    month: int
+    participant_counts: list[int]
+
+    def records(self) -> Iterator[Record]:
+        weekday = WEEKDAYS[self.configuration.class_.weekday.lower()]
+
+        for day, count in zip(days(self.year, self.month, weekday), self.participant_counts, strict=True):
+            if count > 0:
+                hours = self.configuration.class_.time.hours()
+                fee = hours * self.configuration.trainer.hourly_fee
+
+                yield Record(day=day, hours=hours, fee=fee, participant_count=count)
+
+
+def days(year: int, month: int, weekday: int) -> Iterator[int]:
     cal = calendar.Calendar()
-    return [dom for dom, dow in cal.itermonthdays2(year, month) if dom != 0 and dow == weekday]
+    for dom, dow in cal.itermonthdays2(year, month):
+        if dom != 0 and dow == weekday:
+            yield dom
 
 
 def parse_month(month: str) -> tuple[int, int]:
@@ -77,56 +97,54 @@ def format_number(value: float) -> str:
     return str(value).replace(".", ",")
 
 
-def create_records(configuration: Configuration, year: int, month: int, weekday: int, participant_count: list[int]) -> Iterator[Record]:
-    for day, count in zip(days(year, month, weekday), participant_count, strict=True):
-        if count > 0:
-            hours = configuration.class_.time.hours()
-            fee = hours * configuration.trainer.hourly_fee
+def fill_pdf_fields(writer: pypdf.PdfWriter, bill: Bill):
+    records = list(bill.records())
 
-            yield Record(day=day, hours=hours, fee=fee, participant_count=count)
+    # Global fields
+    writer.update_page_form_field_values(writer.pages[0], {
+        # Trainer data
+        "Monat": bill.configuration.trainer.name,
+        "1": bill.configuration.trainer.address[0],
+        "2": bill.configuration.trainer.address[1],
+        "3": bill.configuration.trainer.iban,
+
+        # Bill data
+        "sportart": bill.configuration.class_.name,  # Sportart
+        "undefined": f"{bill.month}/{bill.year}",  # Monat
+
+        # Totals
+        "summe": format_number(sum(r.hours for r in records)),
+        bill.configuration.template.total_fee_column: format_number(sum(r.fee for r in records)),
+
+        # Signature
+        "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
+    })
+
+    # Individual records
+    for i, record in enumerate(records):
+        writer.update_page_form_field_values(writer.pages[0], {
+            f"DatumRow{i+1}": f"{record.day}.{bill.month}.{bill.year}",
+            f"ArbeitszeitRow{i+1}": f"{bill.configuration.class_.time.start} - {bill.configuration.class_.time.end}",
+            f"StdRow{i+1}": format_number(record.hours),
+            f"{bill.configuration.template.fee_column_prefix}{i + 1}": format_number(record.fee),
+            f"Teil nehmerRow{i + 1}": record.participant_count,
+        })
 
 
-def abrechnung(configuration_file: Path, year: int, month: int, participant_count: list[int]):
+def abrechnung(configuration_file: Path, year: int, month: int, participant_counts: list[int]):
     with open(configuration_file, "rb") as f:
         doc = tomllib.load(f)
         configuration = Configuration.model_validate(doc)
 
-    input_file = configuration_file.parent / configuration.template.file
+    bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
 
+    input_file = configuration_file.parent / configuration.template.file
     print(f"Reading {input_file}")
     reader = pdf.PdfReader(open(input_file, "rb"), strict=False)  # TODO strict?
 
     writer = pdf.PdfWriter()
     writer.add_page(reader.pages[0])
-
-    writer.update_page_form_field_values(writer.pages[0], {
-        "Monat": configuration.trainer.name,
-        "1": configuration.trainer.address[0],
-        "2": configuration.trainer.address[1],
-        "3": configuration.trainer.iban,
-    })
-
-    writer.update_page_form_field_values(writer.pages[0], {
-        "sportart": configuration.class_.name,  # Sportart
-        "undefined": f"{month}/{year}",  # Monat
-    })
-
-    records = list(create_records(configuration, year, month, WEEKDAYS[configuration.class_.weekday.lower()], participant_count))
-
-    for i, record in enumerate(records):
-        writer.update_page_form_field_values(writer.pages[0], {
-            f"DatumRow{i+1}": f"{record.day}.{month}.{year}",
-            f"ArbeitszeitRow{i+1}": f"{configuration.class_.time.start} - {configuration.class_.time.end}",
-            f"StdRow{i+1}": format_number(record.hours),
-            f"{configuration.template.fee_column_prefix}{i + 1}": format_number(record.fee),
-            f"Teil nehmerRow{i + 1}": record.participant_count,
-        })
-
-    writer.update_page_form_field_values(writer.pages[0], {
-        "summe": format_number(sum(r.hours for r in records)),
-        configuration.template.total_fee_column: format_number(sum(r.fee for r in records)),
-        "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
-    })
+    fill_pdf_fields(writer, bill)
 
     output_file_name = f"Trainerabrechnung {configuration.trainer.name} {configuration.class_.name} {year}-{month:02d}.pdf"
     output_file = configuration_file.with_name(output_file_name)
@@ -135,9 +153,9 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
         writer.write(f)
 
 
-def main(data_file: Path, month: str, participant_count: list[int]):
+def main(data_file: Path, month: str, participant_counts: list[int]):
     year, month = parse_month(month)
-    abrechnung(data_file, year, month, participant_count)
+    abrechnung(data_file, year, month, participant_counts)
 
 
 if __name__ == "__main__":
