@@ -140,7 +140,7 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
     input_file = configuration_file.parent / configuration.template.file
     print(f"Reading {input_file}")
-    reader = pdf.PdfReader(open(input_file, "rb"), strict=False)  # TODO strict?
+    reader = pdf.PdfReader(open(input_file, "rb"), strict=True)
 
     writer = pdf.PdfWriter()
     writer.add_page(reader.pages[0])
