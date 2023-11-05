@@ -1,0 +1,3 @@
+typer
+pypdf==3.8.1
+
