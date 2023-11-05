@@ -1,0 +1,22 @@
+[trainer]
+
+name = "Karl Wilhelm Ferdinand"
+address = ["Burgplatz 4", "38100 Braunschweig"]
+iban = "DE02 1203 0000 0000 2020 51"
+hourly_fee = 14.5  # 6.5, 12.0, 14.5, 16.5, 18.0
+
+
+[class]
+
+name = "Einrad-Halma"
+weekday = "Sun"  # Mon, Tue, Wed, Thu, Fri, Sat, Sun
+time = {start = "17:30", end = "19:00"}
+
+
+
+[template]
+
+file = "2023-10-24 Trainerabrechnung.pdf"
+fee_column_prefix = "1150Row"  # 650, 900, 1150, 1350, 1500
+total_fee_column = "stunden3"  # stunden1, stunden2, stunden3, stunden4, stunden5
+
