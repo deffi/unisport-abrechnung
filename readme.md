@@ -35,5 +35,8 @@ Only one class can be defined in the configuration file. If you are teaching
 multiple classes, you can use multiple copies of the configuration file in
 separate directories.
 
+There is no support for changing data (such as start and end time) mid-month. If
+that happens, you'll have to do it manually.
+
 The current version of this tool supports the 2023-10-24 version of the form. If
 the template is changed, this tool may have to be updated.
