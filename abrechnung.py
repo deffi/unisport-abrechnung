@@ -29,18 +29,16 @@ class Trainer(BaseModel):
     hourly_fee: float
 
 
-class TimeRange(BaseModel):
-    start: str
-    end: str
-
-    def hours(self):
-        return (datetime.strptime(self.end, "%H:%M") - datetime.strptime(self.start, "%H:%M")).total_seconds() / 3600
-
-
 class Class(BaseModel):
     name: str
     weekday: str
-    time: TimeRange
+    start_time: str
+    end_time: str
+
+    def hours(self):
+        start_time = datetime.strptime(self.start_time, "%H:%M")
+        end_time = datetime.strptime(self.end_time, "%H:%M")
+        return (end_time - start_time).total_seconds() / 3600
 
 
 class Template(BaseModel):
@@ -73,7 +71,7 @@ class Bill(BaseModel):
 
         for day, count in zip(days(self.year, self.month, weekday), self.participant_counts, strict=True):
             if count > 0:
-                hours = self.configuration.class_.time.hours()
+                hours = self.configuration.class_.hours()
                 fee = hours * self.configuration.trainer.hourly_fee
 
                 yield Record(day=day, hours=hours, fee=fee, participant_count=count)
@@ -124,7 +122,7 @@ def fill_pdf_fields(writer: pypdf.PdfWriter, bill: Bill):
     for i, record in enumerate(records):
         writer.update_page_form_field_values(writer.pages[0], {
             f"DatumRow{i+1}": f"{record.day}.{bill.month}.{bill.year}",
-            f"ArbeitszeitRow{i+1}": f"{bill.configuration.class_.time.start} - {bill.configuration.class_.time.end}",
+            f"ArbeitszeitRow{i+1}": f"{bill.configuration.class_.start_time} - {bill.configuration.class_.end_time}",
             f"StdRow{i+1}": format_number(record.hours),
             f"{bill.configuration.template.fee_column_prefix}{i + 1}": format_number(record.fee),
             f"Teil nehmerRow{i + 1}": record.participant_count,
