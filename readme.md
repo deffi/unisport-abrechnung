@@ -25,6 +25,9 @@ For example:
 
     abrechnung.py 10/2023 18 15 0 19
 
+The result will be written to a file whose name is based on the instructor name,
+class name, and month/year.
+
 
 ## Limitations
 
