@@ -99,6 +99,12 @@ class Bill(BaseModel):
 
                 yield Record(day=day, hours=hours, fee=fee, participant_count=count)
 
+    def total_hours(self) -> float:
+        return sum(r.hours for r in self.records())
+
+    def total_fee(self) -> float:
+        return sum(r.fee for r in self.records())
+
 
 # PDF ##########################################################################
 
@@ -118,8 +124,8 @@ def fill_pdf_fields(writer: PdfWriter, bill: Bill):
         "undefined": f"{bill.month}/{bill.year}",  # Monat
 
         # Totals
-        "summe": format_number(sum(r.hours for r in records)),
-        bill.configuration.template.total_fee_column: format_number(sum(r.fee for r in records)),
+        "summe": format_number(bill.total_hours()),
+        bill.configuration.template.total_fee_column: format_number(bill.total_fee()),
 
         # Signature
         "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
@@ -161,6 +167,10 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
 
 def main(data_file: Path, month: str, participant_counts: list[int]):
+    """
+    Supports the 2023-10-24 template. May have to be changed if the template is
+    updated by Sportzentrum.
+    """
     year, month = parse_month(month)
     abrechnung(data_file, year, month, participant_counts)
 
