@@ -1,15 +1,16 @@
-from collections.abc import Iterator
 import calendar
-import tomllib
+from collections.abc import Iterator
+from datetime import datetime
 from pathlib import Path
 import re
-from datetime import datetime
+import tomllib
 
-import pypdf
 from pydantic import BaseModel, conlist, Field
-import pypdf as pdf
+from pypdf import PdfReader, PdfWriter
 import typer
 
+
+# Utilities ####################################################################
 
 WEEKDAYS = {
     "mon": calendar.MONDAY,
@@ -21,6 +22,26 @@ WEEKDAYS = {
     "sun": calendar.SUNDAY,
 }
 
+
+def days(year: int, month: int, weekday: int) -> Iterator[int]:
+    cal = calendar.Calendar()
+    for dom, dow in cal.itermonthdays2(year, month):
+        if dom != 0 and dow == weekday:
+            yield dom
+
+
+def parse_month(month: str) -> tuple[int, int]:
+    match = re.fullmatch(r"(\d\d?)/(\d\d\d\d)", month)
+    month = int(match.group(1))
+    year = int(match.group(2))
+    return year, month
+
+
+def format_number(value: float) -> str:
+    return str(value).replace(".", ",")
+
+
+# Configuration ################################################################
 
 class Trainer(BaseModel):
     name: str
@@ -53,6 +74,8 @@ class Configuration(BaseModel):
     template: Template
 
 
+# Bill #########################################################################
+
 class Record(BaseModel):
     day: int
     hours: float
@@ -77,25 +100,9 @@ class Bill(BaseModel):
                 yield Record(day=day, hours=hours, fee=fee, participant_count=count)
 
 
-def days(year: int, month: int, weekday: int) -> Iterator[int]:
-    cal = calendar.Calendar()
-    for dom, dow in cal.itermonthdays2(year, month):
-        if dom != 0 and dow == weekday:
-            yield dom
+# PDF ##########################################################################
 
-
-def parse_month(month: str) -> tuple[int, int]:
-    match = re.fullmatch(r"(\d\d?)/(\d\d\d\d)", month)
-    month = int(match.group(1))
-    year = int(match.group(2))
-    return year, month
-
-
-def format_number(value: float) -> str:
-    return str(value).replace(".", ",")
-
-
-def fill_pdf_fields(writer: pypdf.PdfWriter, bill: Bill):
+def fill_pdf_fields(writer: PdfWriter, bill: Bill):
     records = list(bill.records())
 
     # Global fields
@@ -129,6 +136,8 @@ def fill_pdf_fields(writer: pypdf.PdfWriter, bill: Bill):
         })
 
 
+# Script #######################################################################
+
 def abrechnung(configuration_file: Path, year: int, month: int, participant_counts: list[int]):
     with open(configuration_file, "rb") as f:
         doc = tomllib.load(f)
@@ -138,9 +147,9 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
     input_file = configuration_file.parent / configuration.template.file
     print(f"Reading {input_file}")
-    reader = pdf.PdfReader(open(input_file, "rb"), strict=True)
+    reader = PdfReader(open(input_file, "rb"), strict=True)
 
-    writer = pdf.PdfWriter()
+    writer = PdfWriter()
     writer.add_page(reader.pages[0])
     fill_pdf_fields(writer, bill)
 
