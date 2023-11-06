@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import calendar
 from collections.abc import Iterator
 from datetime import datetime
