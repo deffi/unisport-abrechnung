@@ -43,7 +43,7 @@ def format_number(value: float) -> str:
 
 # Configuration ################################################################
 
-class Trainer(BaseModel):
+class Instructor(BaseModel):
     name: str
     address: conlist(str, min_length = 1, max_length = 2)
     iban: str
@@ -69,7 +69,7 @@ class Template(BaseModel):
 
 
 class Configuration(BaseModel):
-    trainer: Trainer
+    instructor: Instructor
     class_: Class = Field(alias = "class")
     template: Template
 
@@ -113,11 +113,11 @@ def fill_pdf_fields(writer: PdfWriter, bill: Bill):
 
     # Global fields
     writer.update_page_form_field_values(writer.pages[0], {
-        # Trainer data
-        "Monat": bill.configuration.trainer.name,
-        "1": bill.configuration.trainer.address[0],
-        "2": bill.configuration.trainer.address[1],
-        "3": bill.configuration.trainer.iban,
+        # Instructor data
+        "Monat": bill.configuration.instructor.name,
+        "1": bill.configuration.instructor.address[0],
+        "2": bill.configuration.instructor.address[1],
+        "3": bill.configuration.instructor.iban,
 
         # Bill data
         "sportart": bill.configuration.class_.name,  # Sportart
@@ -159,7 +159,7 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
     writer.add_page(reader.pages[0])
     fill_pdf_fields(writer, bill)
 
-    output_file_name = f"Trainerabrechnung {configuration.trainer.name} {configuration.class_.name} {year}-{month:02d}.pdf"
+    output_file_name = f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
     output_file = configuration_file.with_name(output_file_name)
     print(f"Writing {output_file}")
     with open(output_file, "wb") as f:
