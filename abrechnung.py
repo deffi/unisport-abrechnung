@@ -163,9 +163,12 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
     output_file_name = f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
     output_file = configuration_file.with_name(output_file_name)
-    print(f"Writing {output_file}")
-    with open(output_file, "wb") as f:
-        writer.write(f)
+    if output_file.exists():
+        print(f"Not overwriting {output_file}")
+    else:
+        print(f"Writing {output_file}")
+        with open(output_file, "wb") as f:
+            writer.write(f)
 
 
 def main(month: str, participant_counts: list[int]):
