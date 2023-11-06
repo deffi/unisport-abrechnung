@@ -26,7 +26,6 @@ class Trainer(BaseModel):
     name: str
     address: conlist(str, min_length = 1, max_length = 2)
     iban: str
-    hourly_fee: float
 
 
 class Class(BaseModel):
@@ -34,6 +33,7 @@ class Class(BaseModel):
     weekday: str
     start_time: str
     end_time: str
+    hourly_fee: float
 
     def hours(self):
         start_time = datetime.strptime(self.start_time, "%H:%M")
@@ -72,7 +72,7 @@ class Bill(BaseModel):
         for day, count in zip(days(self.year, self.month, weekday), self.participant_counts, strict=True):
             if count > 0:
                 hours = self.configuration.class_.hours()
-                fee = hours * self.configuration.trainer.hourly_fee
+                fee = hours * self.configuration.class_.hourly_fee
 
                 yield Record(day=day, hours=hours, fee=fee, participant_count=count)
 
