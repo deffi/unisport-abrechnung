@@ -204,10 +204,6 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
 
 def main(month: str, participant_counts: list[int]):
-    """
-    Supports the 2023-10-24 template. May have to be changed if the template is
-    updated by Sportzentrum.
-    """
     year, month = parse_month(month)
     abrechnung(Path("unisport-abrechnung.toml"), year, month, participant_counts)
 
