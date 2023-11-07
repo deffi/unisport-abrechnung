@@ -17,5 +17,3 @@ hourly_fee = 14.5  # 6.5, 12.0, 14.5, 16.5, 18.0
 [template]
 
 file = "2023-10-24 Trainerabrechnung.pdf"
-fee_column_prefix = "1150Row"  # 650Row, 900Row, 1150Row, 1350Row, 1500Row
-total_fee_column = "stunden3"  # stunden1, stunden2, stunden3, stunden4, stunden5

@@ -14,7 +14,8 @@ directory of your choice.
 
 Copy the configuration example (unisport-abrechnung.example.toml) to
 unisport-abrechnung.toml, place it in the same directory as the template, and
-edit it to match your data.
+edit it to match your data. Note that for class.hourly_fee, only specific values
+are allowed because the value is used to select the column in the form.
 
 
 ## Usage

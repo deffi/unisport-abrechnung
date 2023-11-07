@@ -78,8 +78,6 @@ class Class(BaseModel):
 
 class Template(BaseModel):
     file: str
-    fee_column_prefix: str
-    total_fee_column: str
 
 
 class Configuration(BaseModel):
@@ -122,6 +120,28 @@ class Bill(BaseModel):
 
 # PDF ##########################################################################
 
+fee_field_prefix = {
+    6.5: "650Row",
+    12.0: "900Row",
+    14.5: "1150Row",
+    16.5: "1350Row",
+    18.0: "1500Row",
+}
+
+
+total_fee_field = {
+    6.5: "stunden1",
+    12.0: "stunden2",
+    14.5: "stunden3",
+    16.5: "stunden4",
+    18.0: "stunden5",
+}
+
+
+def fee_field(hourly_fee: float, index: int) -> str:
+    return f"{fee_field_prefix[hourly_fee]}{index + 1}"
+
+
 def fill_pdf_fields(writer: PdfWriter, bill: Bill):
     records = list(bill.records())
 
@@ -139,7 +159,7 @@ def fill_pdf_fields(writer: PdfWriter, bill: Bill):
 
         # Totals
         "summe": format_number(bill.total_hours()),
-        bill.configuration.template.total_fee_column: format_number(bill.total_fee()),
+        total_fee_field[bill.configuration.class_.hourly_fee]: format_number(bill.total_fee()),
 
         # Signature
         "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
@@ -151,7 +171,7 @@ def fill_pdf_fields(writer: PdfWriter, bill: Bill):
             f"DatumRow{i+1}": f"{record.day}.{bill.month}.{bill.year}",
             f"ArbeitszeitRow{i+1}": f"{bill.configuration.class_.start_time} - {bill.configuration.class_.end_time}",
             f"StdRow{i+1}": format_number(record.hours),
-            f"{bill.configuration.template.fee_column_prefix}{i + 1}": format_number(record.fee),
+            f"{fee_field_prefix[bill.configuration.class_.hourly_fee]}{i + 1}": format_number(record.fee),
             f"Teil nehmerRow{i + 1}": record.participant_count,
         })
 
