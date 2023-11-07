@@ -178,14 +178,10 @@ def fill_pdf_fields(writer: PdfWriter, bill: Bill):
 
 # Script #######################################################################
 
-def abrechnung(configuration_file: Path, year: int, month: int, participant_counts: list[int]):
-    with open(configuration_file, "rb") as f:
-        doc = tomllib.load(f)
-        configuration = Configuration.model_validate(doc)
-
+def abrechnung(configuration: Configuration, base: Path, year: int, month: int, participant_counts: list[int]):
     bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
 
-    input_file = configuration_file.parent / configuration.template.file
+    input_file = base / configuration.template.file
     print(f"Reading {input_file}")
     reader = PdfReader(open(input_file, "rb"), strict=True)
 
@@ -195,7 +191,7 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
     output_file_name = \
         f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
-    output_file = find_free_file_name(configuration_file.with_name(output_file_name))
+    output_file = find_free_file_name(base / output_file_name)
     assert not output_file.exists()
 
     print(f"Writing {output_file}")
@@ -205,7 +201,13 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
 
 def main(month: str, participant_counts: list[int]):
     year, month = parse_month(month)
-    abrechnung(Path("unisport-abrechnung.toml"), year, month, participant_counts)
+
+    configuration_file = Path("unisport-abrechnung.toml")
+    with open(configuration_file, "rb") as f:
+        doc = tomllib.load(f)
+        configuration = Configuration.model_validate(doc)
+
+    abrechnung(configuration, configuration_file.parent, year, month, participant_counts)
 
 
 if __name__ == "__main__":
