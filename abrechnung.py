@@ -3,6 +3,7 @@
 import calendar
 from collections.abc import Iterator
 from datetime import datetime
+from itertools import count
 from pathlib import Path
 import re
 import tomllib
@@ -41,6 +42,17 @@ def parse_month(month: str) -> tuple[int, int]:
 
 def format_number(value: float) -> str:
     return str(value).replace(".", ",")
+
+
+def find_free_file_name(file: Path):
+    def candidates() -> Iterator[Path]:
+        yield file
+        for i in count(1):
+            yield file.with_stem(file.stem + f"_{i}")
+
+    for candidate in candidates():
+        if not candidate.exists():
+            return candidate
 
 
 # Configuration ################################################################
@@ -161,14 +173,14 @@ def abrechnung(configuration_file: Path, year: int, month: int, participant_coun
     writer.add_page(reader.pages[0])
     fill_pdf_fields(writer, bill)
 
-    output_file_name = f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
-    output_file = configuration_file.with_name(output_file_name)
-    if output_file.exists():
-        print(f"Not overwriting {output_file}")
-    else:
-        print(f"Writing {output_file}")
-        with open(output_file, "wb") as f:
-            writer.write(f)
+    output_file_name = \
+        f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
+    output_file = find_free_file_name(configuration_file.with_name(output_file_name))
+    assert not output_file.exists()
+
+    print(f"Writing {output_file}")
+    with open(output_file, "wb") as f:
+        writer.write(f)
 
 
 def main(month: str, participant_counts: list[int]):

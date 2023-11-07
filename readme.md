@@ -26,7 +26,8 @@ For example:
     abrechnung.py 10/2023 18 15 0 19
 
 The result will be written to a file whose name is based on the instructor name,
-class name, and month/year.
+class name, and month/year. If a file with that name already exists, a numeric
+suffix is appended. No file will ever be overwritten. 
 
 
 ## Limitations
