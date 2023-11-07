@@ -1,124 +1,20 @@
-#!/usr/bin/env python3
-
-import calendar
 from collections.abc import Iterator, Iterable
 from datetime import datetime
-from itertools import count
 from pathlib import Path
-import re
 import tomllib
 
-from pydantic import BaseModel, conlist, Field
 from pypdf import PdfReader, PdfWriter
 import typer
 
-
-# Utilities ####################################################################
-
-WEEKDAYS = {
-    "mon": calendar.MONDAY,
-    "tue": calendar.TUESDAY,
-    "wed": calendar.WEDNESDAY,
-    "thu": calendar.THURSDAY,
-    "fri": calendar.FRIDAY,
-    "sat": calendar.SATURDAY,
-    "sun": calendar.SUNDAY,
-}
-
-
-def days(year: int, month: int, weekday: int) -> Iterator[int]:
-    cal = calendar.Calendar()
-    for dom, dow in cal.itermonthdays2(year, month):
-        if dom != 0 and dow == weekday:
-            yield dom
-
-
-def parse_month(month: str) -> tuple[int, int]:
-    match = re.fullmatch(r"(\d\d?)/(\d\d\d\d)", month)
-    month = int(match.group(1))
-    year = int(match.group(2))
-    return year, month
+from unisport_abrechnung.configuration import Configuration
+from unisport_abrechnung.bill import Bill
+from unisport_abrechnung.util.date import parse_month, days, WEEKDAYS
+from unisport_abrechnung.util.file import find_free_file_name
 
 
 def format_number(value: float) -> str:
     return str(value).replace(".", ",")
 
-
-def find_free_file_name(file: Path):
-    def candidates() -> Iterator[Path]:
-        yield file
-        for i in count(1):
-            yield file.with_stem(file.stem + f"_{i}")
-
-    for candidate in candidates():
-        if not candidate.exists():
-            return candidate
-
-
-# Configuration ################################################################
-
-class Instructor(BaseModel):
-    name: str
-    address: conlist(str, min_length = 1, max_length = 2)
-    iban: str
-
-
-class Class(BaseModel):
-    name: str
-    weekday: str
-    start_time: str
-    end_time: str
-    hourly_fee: float
-
-    def hours(self):
-        start_time = datetime.strptime(self.start_time, "%H:%M")
-        end_time = datetime.strptime(self.end_time, "%H:%M")
-        return (end_time - start_time).total_seconds() / 3600
-
-
-class Template(BaseModel):
-    file: str
-
-
-class Configuration(BaseModel):
-    instructor: Instructor
-    class_: Class = Field(alias = "class")
-    template: Template
-
-
-# Bill #########################################################################
-
-class Record(BaseModel):
-    day: int
-    hours: float
-    fee: float
-    participant_count: int
-
-
-class Bill(BaseModel):
-    configuration: Configuration
-    year: int
-    month: int
-    participant_counts: list[int]
-
-    def records(self) -> Iterator[Record]:
-        weekday = WEEKDAYS[self.configuration.class_.weekday.lower()]
-
-        for day, count in zip(days(self.year, self.month, weekday), self.participant_counts, strict=True):
-            if count > 0:
-                hours = self.configuration.class_.hours()
-                fee = hours * self.configuration.class_.hourly_fee
-
-                yield Record(day=day, hours=hours, fee=fee, participant_count=count)
-
-    def total_hours(self) -> float:
-        return sum(r.hours for r in self.records())
-
-    def total_fee(self) -> float:
-        return sum(r.fee for r in self.records())
-
-
-# PDF ##########################################################################
 
 fee_field_prefix = {
     6.5: "650Row",
@@ -225,7 +121,3 @@ def main(month: str = typer.Argument(""),
         participant_counts = list(query_participant_counts(year, month, days(year, month, WEEKDAYS[configuration.class_.weekday.lower()])))
 
     abrechnung(configuration, configuration_file.parent, year, month, participant_counts)
-
-
-if __name__ == "__main__":
-    typer.run(main)
