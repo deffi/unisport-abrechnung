@@ -12,9 +12,9 @@ Install the packages from requirements.txt:
 Download the official template from the Unisport website and place it in a
 directory of your choice.
 
-Copy the configuration example (unisport-abrechnung.example.toml) to
+Copy the configuration example (doc/unisport-abrechnung.example.toml) to
 unisport-abrechnung.toml, place it in the same directory as the template, and
-edit it to match your data. Note that for class.hourly_fee, only specific values
+edit it to match your data. Note that for class.hourly\_fee, only specific values
 are allowed because the value is used to select the column in the form.
 
 You may also want to create a shortcut to the abrechnung.py file.
