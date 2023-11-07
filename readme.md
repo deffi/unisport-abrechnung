@@ -17,6 +17,8 @@ unisport-abrechnung.toml, place it in the same directory as the template, and
 edit it to match your data. Note that for class.hourly_fee, only specific values
 are allowed because the value is used to select the column in the form.
 
+You may also want to create a shortcut to the abrechnung.py file.
+
 
 ## Usage
 
@@ -39,6 +41,17 @@ For example:
 Call the script without any arguments. You will be queried for the month/year
 and the number of participants for each day. For days where the class did not
 take place, enter 0 or an empty string.
+
+Example run:
+
+    Billing period (mm/yyyy): 11/2023
+    Participant count for 1.11.2023: 11
+    Participant count for 8.11.2023: 12
+    Participant count for 15.11.2023: 13
+    Participant count for 22.11.2023:
+    Participant count for 29.11.2023: 15
+    Reading 2023-10-24 Trainerabrechnung.pdf
+    Writing Trainerabrechnung Karl Wilhelm Ferdinand Einrad-Halma 2023-11.pdf
 
 
 ## Limitations
