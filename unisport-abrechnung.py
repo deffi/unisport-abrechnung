@@ -3,8 +3,6 @@
 from pathlib import Path
 import sys
 
-import typer
-
 
 if __name__ == '__main__':
     source_path = str(Path(__file__).parent / "src")
@@ -12,4 +10,4 @@ if __name__ == '__main__':
         sys.path.append(source_path)
 
     from unisport_abrechnung.cli.unisport_abrechnung import main
-    typer.run(main)
+    sys.exit(main())

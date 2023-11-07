@@ -104,7 +104,7 @@ def query_participant_counts(year: int, month: int, days: Iterable[int]) -> Iter
         yield int(input(f"Participant count for {day}.{month}.{year}: ") or "0")
 
 
-def main(month: str = typer.Argument(""),
+def unisport_abrechnung(month: str = typer.Argument(""),
          participant_counts: list[int] = typer.Argument(None)):
 
     configuration_file = Path("unisport-abrechnung.toml")
@@ -121,3 +121,7 @@ def main(month: str = typer.Argument(""),
         participant_counts = list(query_participant_counts(year, month, days(year, month, WEEKDAYS[configuration.class_.weekday.lower()])))
 
     abrechnung(configuration, configuration_file.parent, year, month, participant_counts)
+
+
+def main():
+    typer.run(unisport_abrechnung)
