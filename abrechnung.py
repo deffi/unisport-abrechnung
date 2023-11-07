@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import calendar
-from collections.abc import Iterator
+from collections.abc import Iterator, Iterable
 from datetime import datetime
 from itertools import count
 from pathlib import Path
@@ -199,13 +199,30 @@ def abrechnung(configuration: Configuration, base: Path, year: int, month: int, 
         writer.write(f)
 
 
-def main(month: str, participant_counts: list[int]):
-    year, month = parse_month(month)
+def query_month() -> str:
+    return input("Billing period (mm/yyyy): ")
+
+
+def query_participant_counts(year: int, month: int, days: Iterable[int]) -> Iterator[int]:
+    for day in days:
+        yield int(input(f"Participant count for {day}.{month}.{year}: ") or "0")
+
+
+def main(month: str = typer.Argument(""),
+         participant_counts: list[int] = typer.Argument(None)):
 
     configuration_file = Path("unisport-abrechnung.toml")
     with open(configuration_file, "rb") as f:
         doc = tomllib.load(f)
         configuration = Configuration.model_validate(doc)
+
+    if not month:
+        month = query_month()
+
+    year, month = parse_month(month)
+
+    if not participant_counts:
+        participant_counts = list(query_participant_counts(year, month, days(year, month, WEEKDAYS[configuration.class_.weekday.lower()])))
 
     abrechnung(configuration, configuration_file.parent, year, month, participant_counts)
 

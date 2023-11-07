@@ -20,15 +20,25 @@ are allowed because the value is used to select the column in the form.
 
 ## Usage
 
+In either case, the result will be written to a file whose name is based on the
+instructor name, class name, and month/year. If a file with that name already
+exists, a numeric suffix is appended. No file will ever be overwritten. 
+
+
+### Command line usage
+
 Call the script, passing the month/year and the number of participants for each
 day. For days where the class did not take place, specify 0. 
 For example:
 
     abrechnung.py 10/2023 18 15 0 19
 
-The result will be written to a file whose name is based on the instructor name,
-class name, and month/year. If a file with that name already exists, a numeric
-suffix is appended. No file will ever be overwritten. 
+
+### Interactive usage
+
+Call the script without any arguments. You will be queried for the month/year
+and the number of participants for each day. For days where the class did not
+take place, enter 0 or an empty string.
 
 
 ## Limitations
