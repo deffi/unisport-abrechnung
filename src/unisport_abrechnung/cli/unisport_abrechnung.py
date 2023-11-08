@@ -34,7 +34,7 @@ def abrechnung(configuration: Configuration, base: Path, year: int, month: int, 
         writer.write(f)
 
 
-def query_month() -> str:
+def query_period() -> str:
     return input("Billing period (mm/yyyy): ")
 
 
@@ -43,7 +43,7 @@ def query_participant_counts(year: int, month: int, days: Iterable[int]) -> Iter
         yield int(input(f"Participant count for {day}.{month}.{year}: ") or "0")
 
 
-def unisport_abrechnung(month: str = typer.Argument(""),
+def unisport_abrechnung(period: str = typer.Argument(""),
          participant_counts: list[int] = typer.Argument(None)):
 
     configuration_file = Path("unisport-abrechnung.toml")
@@ -51,10 +51,10 @@ def unisport_abrechnung(month: str = typer.Argument(""),
         doc = tomllib.load(f)
         configuration = Configuration.model_validate(doc)
 
-    if not month:
-        month = query_month()
+    if not period:
+        period = query_period()
 
-    year, month = parse_month(month)
+    year, month = parse_month(period)
 
     if not participant_counts:
         participant_counts = list(query_participant_counts(year, month, days(year, month, WEEKDAYS[configuration.class_.weekday.lower()])))

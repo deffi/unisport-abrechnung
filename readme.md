@@ -23,15 +23,18 @@ You may also want to create a shortcut to the abrechnung.py file.
 ## Usage
 
 In either case, the result will be written to a file whose name is based on the
-instructor name, class name, and month/year. If a file with that name already
-exists, a numeric suffix is appended. No file will ever be overwritten. 
+instructor name, class name, and billing period (month/year). If a file with
+that name already exists, a numeric suffix is appended. No file will ever be
+overwritten. 
 
 
 ### Command line usage
 
-Call the script, passing the month/year and the number of participants for each
-day. For days where the class did not take place, specify 0. 
-For example:
+Call the script, passing the billing period (month/year) and the number of
+participants for each day. For days where the class did not take place,
+specify 0.
+
+Example invocation:
 
     abrechnung.py 10/2023 18 15 0 19
 
