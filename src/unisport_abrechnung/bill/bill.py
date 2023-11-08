@@ -28,3 +28,9 @@ class Bill(BaseModel):
 
     def total_fee(self) -> float:
         return sum(r.fee for r in self.records())
+
+    def default_file_name_stem(self) -> str:
+        instructor = self.configuration.instructor.name
+        class_ = self.configuration.class_.name
+
+        return f"Trainerabrechnung {instructor} {class_} {self.year}-{self.month:02d}"

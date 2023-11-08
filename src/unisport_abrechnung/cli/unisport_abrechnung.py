@@ -24,9 +24,7 @@ def abrechnung(configuration: Configuration, base: Path, year: int, month: int, 
 
     Template().fill(writer, bill)
 
-    output_file_name = \
-        f"Trainerabrechnung {configuration.instructor.name} {configuration.class_.name} {year}-{month:02d}.pdf"
-    output_file = find_free_file_name(base / output_file_name)
+    output_file = find_free_file_name(base / f"{bill.default_file_name_stem()}.pdf")
     assert not output_file.exists()
 
     print(f"Writing {output_file}")
