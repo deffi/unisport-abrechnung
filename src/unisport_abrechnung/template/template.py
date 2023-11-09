@@ -5,7 +5,6 @@ from pypdf import PdfWriter, PdfReader
 
 from unisport_abrechnung.bill import Bill
 
-
 _fee_field_prefix = {
     6.5: "650Row",
     12.0: "900Row",

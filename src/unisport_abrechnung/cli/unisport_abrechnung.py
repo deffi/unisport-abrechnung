@@ -2,8 +2,8 @@ from pathlib import Path
 
 import typer
 
-from unisport_abrechnung.configuration import Configuration
 from unisport_abrechnung.bill import Bill
+from unisport_abrechnung.configuration import Configuration
 from unisport_abrechnung.template import Template
 from unisport_abrechnung.util.date import parse_month
 from unisport_abrechnung.util.file import find_free_file_name

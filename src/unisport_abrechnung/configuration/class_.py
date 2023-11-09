@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 from unisport_abrechnung.util.date import days
 
-
 _weekdays = {
     "mon": calendar.MONDAY,
     "tue": calendar.TUESDAY,
