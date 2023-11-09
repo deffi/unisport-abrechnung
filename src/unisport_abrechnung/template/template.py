@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from pypdf import PdfWriter
+from pypdf import PdfWriter, PdfReader
 
 from unisport_abrechnung.bill import Bill
 
@@ -24,6 +24,9 @@ _total_fee_field = {
 
 
 class Template:
+    def __init__(self, file: Path):
+        self._file = file
+
     @staticmethod
     def format_number(value: float) -> str:
         return str(value).replace(".", ",")
@@ -32,7 +35,17 @@ class Template:
     def fee_field(hourly_fee: float, index: int) -> str:
         return f"{_fee_field_prefix[hourly_fee]}{index + 1}"
 
-    def fill(self, writer: PdfWriter, bill: Bill):
+    def _create_reader(self) -> PdfReader:
+        return PdfReader(open(self._file, "rb"), strict=True)
+
+    def _create_writer(self, reader: PdfReader) -> PdfWriter:
+        writer = PdfWriter()
+        writer.add_page(reader.pages[0])
+        return writer
+
+    def fill(self, bill: Bill) -> PdfWriter:
+        writer = self._create_writer(self._create_reader())
+
         records = list(bill.records())
 
         # Global fields
@@ -64,3 +77,5 @@ class Template:
                 f"{_fee_field_prefix[bill.configuration.class_.hourly_fee]}{i + 1}": self.format_number(record.fee),
                 f"Teil nehmerRow{i + 1}": record.participant_count,
             })
+
+        return writer
