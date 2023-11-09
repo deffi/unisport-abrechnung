@@ -1,6 +1,4 @@
-from collections.abc import Iterator, Iterable
 from pathlib import Path
-import tomllib
 
 import typer
 
@@ -12,48 +10,48 @@ from unisport_abrechnung.util.file import find_free_file_name
 
 
 def _unisport_abrechnung(base: Path, configuration: Configuration, year: int, month: int, participant_counts: list[int]):
+    # Create the bill data
     bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
 
+    # Determine file paths
     input_file = base / configuration.template.file
     output_file = find_free_file_name(base / f"{bill.default_file_name_stem()}.pdf")
 
-    print(f"Reading {input_file}")
+    # Fill the template
+    print(f"Reading template from {input_file}")
     writer = Template(input_file).fill(bill)
 
-    print(f"Writing {output_file}")
+    # Write the output
+    print(f"Writing output to {output_file}")
     assert not output_file.exists()
     with open(output_file, "wb") as f:
         writer.write(f)
 
 
-def query_period() -> str:
-    return input("Billing period (mm/yyyy): ")
-
-
-def query_participant_counts(year: int, month: int, days: Iterable[int]) -> Iterator[int]:
-    for day in days:
-        yield int(input(f"Participant count for {day}.{month}.{year}: ") or "0")
-
-
 def unisport_abrechnung(period:             str       = typer.Argument(""),
                         participant_counts: list[int] = typer.Argument(None)):
 
+    # Load the configuration
     configuration_file = Path("unisport-abrechnung.toml")
-    with open(configuration_file, "rb") as f:
-        doc = tomllib.load(f)
-        configuration = Configuration.model_validate(doc)
+    print(f"Loading configuration from {configuration_file}")
+    configuration = Configuration.load(configuration_file)
 
+    # If the period is not specified, query the user
     if not period:
-        period = query_period()
+        period = input("Billing period (mm/yyyy): ")
 
+    # Parse the period
     year, month = parse_month(period)
 
+    # If the participant counts are not specified, query the user (we need the
+    # period for this)
     if not participant_counts:
-        participant_counts = list(query_participant_counts(year, month, configuration.class_.days(year, month)))
+        for day in configuration.class_.days(year, month):
+            participant_count = int(input(f"Participant count for {year}-{month}-{day}: ") or "0")
+            participant_counts.append(participant_count)
 
-    base = configuration_file.parent
-
-    _unisport_abrechnung(base, configuration, year, month, participant_counts)
+    # Run with cleaned up parameters
+    _unisport_abrechnung(configuration_file.parent, configuration, year, month, participant_counts)
 
 
 def main():
