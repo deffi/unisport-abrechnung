@@ -9,7 +9,8 @@ from unisport_abrechnung.util.date import parse_month
 from unisport_abrechnung.util.file import find_free_file_name
 
 
-def _unisport_abrechnung(base: Path, configuration: Configuration, year: int, month: int, participant_counts: list[int]):
+def _unisport_abrechnung(base: Path, configuration: Configuration,
+                         year: int, month: int, participant_counts: list[int]):
     # Create the bill data
     bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
 

@@ -13,7 +13,9 @@ class Bill(BaseModel):
     participant_counts: list[int]
 
     def records(self) -> Iterator[Record]:
-        for day, count in zip(self.configuration.class_.days(self.year, self.month), self.participant_counts, strict=True):
+        days = self.configuration.class_.days(self.year, self.month)
+
+        for day, count in zip(days, self.participant_counts, strict=True):
             if count > 0:
                 hours = self.configuration.class_.hours()
                 fee = hours * self.configuration.class_.hourly_fee

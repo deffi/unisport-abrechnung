@@ -38,7 +38,8 @@ class Template:
     def _create_reader(self) -> PdfReader:
         return PdfReader(open(self._file, "rb"), strict=True)
 
-    def _create_writer(self, reader: PdfReader) -> PdfWriter:
+    @staticmethod
+    def _create_writer(reader: PdfReader) -> PdfWriter:
         writer = PdfWriter()
         writer.add_page(reader.pages[0])
         return writer
@@ -46,23 +47,27 @@ class Template:
     def fill(self, bill: Bill) -> PdfWriter:
         writer = self._create_writer(self._create_reader())
 
+        # Shortcuts
+        instructor = bill.configuration.instructor
+        class_ = bill.configuration.class_
+
         records = list(bill.records())
 
         # Global fields
         writer.update_page_form_field_values(writer.pages[0], {
             # Instructor data
-            "Monat": bill.configuration.instructor.name,
-            "1": bill.configuration.instructor.address[0],
-            "2": bill.configuration.instructor.address[1],
-            "3": bill.configuration.instructor.iban,
+            "Monat": instructor.name,
+            "1": instructor.address[0],
+            "2": instructor.address[1],
+            "3": instructor.iban,
 
             # Bill data
-            "sportart": bill.configuration.class_.name,  # Sportart
+            "sportart": class_.name,  # Sportart
             "undefined": f"{bill.month}/{bill.year}",  # Monat
 
             # Totals
             "summe": self.format_number(bill.total_hours()),
-            _total_fee_field[bill.configuration.class_.hourly_fee]: self.format_number(bill.total_fee()),
+            _total_fee_field[class_.hourly_fee]: self.format_number(bill.total_fee()),
 
             # Signature
             "Braunschweig den": datetime.today().strftime("%d.%m.%Y"),
@@ -72,9 +77,9 @@ class Template:
         for i, record in enumerate(records):
             writer.update_page_form_field_values(writer.pages[0], {
                 f"DatumRow{i + 1}": f"{record.day}.{bill.month}.{bill.year}",
-                f"ArbeitszeitRow{i + 1}": f"{bill.configuration.class_.start_time} - {bill.configuration.class_.end_time}",
+                f"ArbeitszeitRow{i + 1}": f"{class_.start_time} - {class_.end_time}",
                 f"StdRow{i + 1}": self.format_number(record.hours),
-                f"{_fee_field_prefix[bill.configuration.class_.hourly_fee]}{i + 1}": self.format_number(record.fee),
+                f"{_fee_field_prefix[class_.hourly_fee]}{i + 1}": self.format_number(record.fee),
                 f"Teil nehmerRow{i + 1}": record.participant_count,
             })
 
