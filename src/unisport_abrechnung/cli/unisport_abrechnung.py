@@ -7,8 +7,23 @@ import typer
 from unisport_abrechnung.configuration import Configuration
 from unisport_abrechnung.bill import Bill
 from unisport_abrechnung.template import Template
-from unisport_abrechnung.util.date import parse_month, days, WEEKDAYS
+from unisport_abrechnung.util.date import parse_month
 from unisport_abrechnung.util.file import find_free_file_name
+
+
+def _unisport_abrechnung(base: Path, configuration: Configuration, year: int, month: int, participant_counts: list[int]):
+    bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
+
+    input_file = base / configuration.template.file
+    output_file = find_free_file_name(base / f"{bill.default_file_name_stem()}.pdf")
+
+    print(f"Reading {input_file}")
+    writer = Template(input_file).fill(bill)
+
+    print(f"Writing {output_file}")
+    assert not output_file.exists()
+    with open(output_file, "wb") as f:
+        writer.write(f)
 
 
 def query_period() -> str:
@@ -34,21 +49,11 @@ def unisport_abrechnung(period:             str       = typer.Argument(""),
     year, month = parse_month(period)
 
     if not participant_counts:
-        participant_counts = list(query_participant_counts(year, month, days(year, month, WEEKDAYS[configuration.class_.weekday.lower()])))
-
-    bill = Bill(configuration=configuration, year=year, month=month, participant_counts=participant_counts)
+        participant_counts = list(query_participant_counts(year, month, configuration.class_.days(year, month)))
 
     base = configuration_file.parent
-    input_file = base / configuration.template.file
-    output_file = find_free_file_name(base / f"{bill.default_file_name_stem()}.pdf")
 
-    print(f"Reading {input_file}")
-    writer = Template(input_file).fill(bill)
-
-    print(f"Writing {output_file}")
-    assert not output_file.exists()
-    with open(output_file, "wb") as f:
-        writer.write(f)
+    _unisport_abrechnung(base, configuration, year, month, participant_counts)
 
 
 def main():

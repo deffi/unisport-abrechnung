@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 from unisport_abrechnung.bill import Record
 from unisport_abrechnung.configuration import Configuration
-from unisport_abrechnung.util.date import WEEKDAYS, days
 
 
 class Bill(BaseModel):
@@ -14,9 +13,7 @@ class Bill(BaseModel):
     participant_counts: list[int]
 
     def records(self) -> Iterator[Record]:
-        weekday = WEEKDAYS[self.configuration.class_.weekday.lower()]
-
-        for day, count in zip(days(self.year, self.month, weekday), self.participant_counts, strict=True):
+        for day, count in zip(self.configuration.class_.days(self.year, self.month), self.participant_counts, strict=True):
             if count > 0:
                 hours = self.configuration.class_.hours()
                 fee = hours * self.configuration.class_.hourly_fee
