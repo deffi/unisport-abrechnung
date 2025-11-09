@@ -30,7 +30,7 @@ def _unisport_abrechnung(base: Path, configuration: Configuration,
 
 
 def unisport_abrechnung(period:             str       = typer.Argument(""),
-                        participant_counts: list[int] = typer.Argument(None)):
+                        participant_counts: list[int] = typer.Argument([])):
 
     # Load the configuration
     configuration_file = Path("unisport-abrechnung.toml")
@@ -48,7 +48,7 @@ def unisport_abrechnung(period:             str       = typer.Argument(""),
     # period for this)
     if not participant_counts:
         for day in configuration.class_.days(year, month):
-            participant_count = int(input(f"Participant count for {year}-{month}-{day}: ") or "0")
+            participant_count = int(input(f"Participant count for {year}-{month}-{day}: ") or "0")  # TODO day with fixed width
             participant_counts.append(participant_count)
 
     # Run with cleaned up parameters
