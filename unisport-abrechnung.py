@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "pydantic",
+#     "pypdf==3.8.1",
+#     "typer",
+# ]
+# ///
 
 from pathlib import Path
 import sys
